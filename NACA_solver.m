@@ -1,40 +1,74 @@
 
 function NACA_solver()
 
-    clc;
+    naca = 'NACA2408'
+    alpha = 4
+    
+    [f, p, t, alpha] = parseNACA(naca, alpha);
 
-    f = 2;
-    p = 4;
-    n = 100;
-    xh = -1;
-    eta = 10;
-    u_inf = 1;
-    alpha = 0;
-    x_ref = 0.25;
-    c = 1;
+    n = 128;    % number of panels
+    xh = -1;    % flap hinge position (in tenths of chord)
+    eta = 40;   % flap angle (in degrees)
+    u_inf = 1;    % free air stream speed (not really relevant)
+    x_ref = 0.25; % point considered for the moment coeficient in fraction of chord
+    c = 1;        % chord lenght (not really relevant)
     
-    %discussion();
+    [x, z] = getAirfoilChamberPoints(f, p, n, xh, eta);
+    gamma = solveAirfoil(x, z, alpha, u_inf);
     
-    %checkFlapEfficiency(f, p, [0.9]);
-
-    %[x, z] = getAirfoilChamberPoints(f, p, n, xh, eta);
+    % uncomment sections as needed
     
-    %gamma = solveAirfoil(x, z, alpha, u_inf);
-    
+    % check C_l and C_m for given alpha
     %cl = getLiftCoeficient(gamma, u_inf, c)
     %cm = getMomentCoeficient(gamma, u_inf, alpha, x, x_ref)
     
-    [cl_slope, alpha_0, cm0] = getAirfoilCharacteristics(f, p, xh, eta)
     
-    %testConvergence(f, p, alpha, xh, eta, u_inf, x_ref, 1.3134, -0.0515);
-   
-    %cp = getPressureCoeficients(gamma, u_inf, x, z);
+    % see pressure distribution over the airfoil
+    %showPressureCoeficientsOverAirfoil(x, z, alpha);
     
-    %hold on;
-    %plot(x, [cp, 0], x, z);
-    %legend('pressure', 'profile');
-    %grid on;
-    %hold off;
+    
+    % plot airfoil shape
+    %plot(x, z);
+    %ylim([-0.5 0.5]);
+    
+    
+    % homework section 1: convergence and error analisis
+    %testConvergence(f, p, alpha, xh, eta, u_inf, 0.0, 0.6664, -0.2197);
+    
+    
+    % homework section 2.1: airfoil C_l slope and C_m (check units)
+    %[cl_slope, alpha_0, cm0] = getAirfoilCharacteristics(f, p, xh, eta)
+    
+    
+    % homework section 2.2: flap efficiency
+    %checkFlapEfficiency(f, p);
+    
+    
+    % homework section 3: effect of f and p over the alpha0 and C_m
+    %discussion();
+end
+
+
+% Given a string containing a designation of a four digit NACA airfoil in
+% the form NACAXXXX and an angle of attack alpha in degrees it parses the
+% parameters of the airfoil and returns max curvature in percent of chord
+% (f), max curvature position in tenths of chord (p), max thickness in
+% percent of chord (t) and angle of attack.
+% It also checks that all the parameters are withing valid ranges and
+% outputs a warning otherwise.
+function [f, p, t, alpha] = parseNACA (naca_designation, alpha)
+
+    f = str2double(naca_designation(5));
+    p = str2double(naca_designation(6));
+    t = str2double(naca_designation(7:8));
+    
+    if t > 15
+        warning('Thin airfoil theory may not apply for thickness superior to 15%');
+    end
+    
+    if alpha < -10 || alpha > 10
+        warning('Thin airfoil theory may not apply for angles of attack greater than +-10º');
+    end
 
 end
 
@@ -68,8 +102,25 @@ function [x, z] = getAirfoilChamberPoints(f, p, n, xh, eta)
     
     % if flap is desired
     if xh < 1 && xh > 0
+        
+        eta = -eta;
+        
         flap_part = (x >= xh);
-        z(flap_part) = z(flap_part) - tan(eta)*(x(flap_part) - xh);
+        
+        if (xh < p)
+            hinge_z = f/p^2 * (2*p*xh - xh^2);
+        else
+            hinge_z = f/(1-p)^2 * (1 - 2*p + 2*p*xh - xh^2);
+        end
+        
+        flap_vector_x = x(flap_part) - xh;
+        flap_vector_z = z(flap_part) - hinge_z;
+        
+        rotated_flap_vec_x = flap_vector_x*cos(eta) - sin(eta)*flap_vector_z;
+        rotated_flap_vec_z = flap_vector_x*sin(eta) + cos(eta)*flap_vector_z;
+        
+        x(flap_part) = xh + rotated_flap_vec_x;
+        z(flap_part) = hinge_z + rotated_flap_vec_z;
     end
 
 end
@@ -161,9 +212,9 @@ function cm = getMomentCoeficient(gamma, u_inf, alpha, x, x_ref)
 end
 
 
-% Given the following values of a wing profile
+% Given the following values of a airfoil
 %
-%   gamma: vortex density over the chord of the profile
+%   gamma: vortex density over the chord of the airfoil
 %   u_inf: free airstream speed
 %   alpha: angle of attack of the profile in degrees
 %   x: x coordinate position for each panel union (including first and
@@ -180,6 +231,37 @@ function cp = getPressureCoeficients(gamma, u_inf, x, z)
     c = sqrt(delta_x.^2 + delta_z.^2);
     
     cp = 2*gamma'./(u_inf*c);
+
+end
+
+
+% Given the following values for an airfoil
+%
+%   x: x coordinate position for each panel union (including first and
+%      last points)
+%   z: z coordinate position for each panel union (including first and
+%      last points)
+%   alpha: angle of attack of the profile in degrees
+%
+% Plots the airfoil and the C_p over it
+function showPressureCoeficientsOverAirfoil(x, z, alpha)
+
+    gamma = solveAirfoil(x, z, alpha, 1);
+    cp = getPressureCoeficients(gamma, 1, x, z);
+    
+    yyaxis left;
+    plot(x, z);
+    ylabel('chamber points');
+    ylim([-0.5 0.5]);
+    yyaxis right;
+    plot(x, [cp 0]);
+    ylim([-7 7]);
+    title('Cp distribution over airfoil');
+    xlabel('unit chord');
+    ylabel('value of Cp');
+    lgd = legend('airfoil', 'Cp');
+    lgd.Location = 'southeast';
+    grid on;
 
 end
 
@@ -234,7 +316,7 @@ end
 
 function [cl_slope, alpha_0, cm0] = getAirfoilCharacteristics(f, p, xh, eta)
 
-    n = 256; % this value should be big enough
+    n = 128; % this value should be big enough
     u_inf = 1;
     
     cl = zeros(1, 10);
@@ -261,21 +343,44 @@ end
 
 % this function makes the flap analysis for the second section of the
 % homewrk
-function checkFlapEfficiency(f, p, E_ratios)
+function checkFlapEfficiency(f, p)
+
+    E_values = [0.15 0.2 0.25 0.3];
     
-    flap_efficiency = zeros(1, size(E_ratios, 2));
+    xh_values = (1-E_values)*10; %convert from flap-chord ratio to hinge ratio in tenths of chord
     
-    [trash, alpha_0, trash] = getAirfoilCharacteristics(f, p, -1, 0);
+    eta_values = linspace(0, 45, 10);
+        
     
-    for i = 1:size(E_ratios,2)
-        efficiency = zeros(1, 40);
-        for j = 1:45
-            [trash, alpha(j), trash] = getAirfoilCharacteristics(f, p, (1-E_ratios(i))*10, j);
-            efficiency = (alpha - alpha_0)/j;
+    efficiency_values = zeros(1, size(xh_values, 2));
+    exp_efficiency_values = [0.35 0.44 0.53 0.59]; % experimental e values
+        
+    for j = 1:size(xh_values, 2)
+        
+        alpha0 = zeros(1, size(eta_values, 2));
+        
+        for i = 1:size(eta_values, 2)
+            [t, alpha0(i), t] = getAirfoilCharacteristics(f, p, xh_values(j), eta_values(i));
         end
         
-        efficiency
+        line = polyfit(eta_values, alpha0, 1);
+        efficiency_values(j) = -line(1);   % efficiency value for this value of xh
     end
+            
+    correction_factor = mean(exp_efficiency_values./efficiency_values)
+    
+    hold on;
+    plot(E_values, efficiency_values);
+    plot(E_values, exp_efficiency_values);
+    plot(E_values, efficiency_values.*correction_factor);
+    
+    ylabel('Efficiency value');
+    title('Flap efficiency analysis');
+    xlabel('value of flap-chord ratio');
+    lgd = legend('computational', 'experiemental', 'corrected computational');
+    lgd.Location = 'southeast';
+    grid on;
+    hold off;
 
 end
 
