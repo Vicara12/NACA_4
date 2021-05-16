@@ -77,12 +77,12 @@ end
 %
 %   f: maximum chamber in percent of chord (min 0 max 9)
 %   p: maximum chamber position in tenths of chord (min 0 max 9)
-%   n: number of pannels used (min 2)
+%   n: number of panels used (min 2)
 %   xh: flap hinge location in tenths of chord (min 0 max 10) use the
 %       a value of 10 or negative ones if no flap is desired
 %   eta: flap deflection angle in degree (min 0 max 90)
 %
-% It returns the positions of the union points between pannels (including
+% It returns the positions of the union points between panels (including
 % position of the first and last points)
 function [x, z] = getAirfoilChamberPoints(f, p, n, xh, eta)
 
@@ -129,9 +129,9 @@ end
 % Given an airfoil described by the parameters
 %
 %   x: vector containing the x position of the panel unions that compose
-%      the chord of the profile (all values must be between 0 and 1)
+%      the chord of the airfoil (all values must be between 0 and 1)
 %   z: vector containing the z position of the panel unions that compose
-%      the chord of the profile (x and z must be the same size)
+%      the chord of the airfoil (x and z must be the same size)
 %   alpha: angle of attack in degrees (recomended min -10 max 10)
 %   u_inf: free airstream speed
 %
@@ -142,7 +142,7 @@ function gamma = solveAirfoil(x, z, alpha, u_inf)
     n = size(x, 2) - 1;
     alpha = alpha*pi/180;
     
-    % compute normal vectors to the pannels
+    % compute normal vectors to the panels
     delta_x = x(2:n+1) - x(1:n);
     delta_z = z(2:n+1) - z(1:n);
     c = sqrt(delta_x.^2 + delta_z.^2);
@@ -177,9 +177,9 @@ function gamma = solveAirfoil(x, z, alpha, u_inf)
 end
 
 
-% Given the following values of a wing profile
+% Given the following values of an airfoil
 %
-%   gamma: vortex density over the chord of the profile
+%   gamma: vortex density over the chord of the airfoil
 %   u_inf: free airstream speed
 %   c: size of the chord
 %
@@ -191,11 +191,11 @@ function cl = getLiftCoeficient(gamma, u_inf, c)
 end
 
 
-% Given the following values of a wing profile
+% Given the following values of an airfoil
 %
-%   gamma: vortex density over the chord of the profile
+%   gamma: vortex density over the chord of the airfoil
 %   u_inf: free airstream speed
-%   alpha: angle of attack of the profile in degrees
+%   alpha: angle of attack of the airfoil in degrees
 %   x: x coordinate position for each panel union (including first and
 %      last points)
 %   x_ref: reference point for the moment of inertia
@@ -212,11 +212,11 @@ function cm = getMomentCoeficient(gamma, u_inf, alpha, x, x_ref)
 end
 
 
-% Given the following values of a airfoil
+% Given the following values of an airfoil
 %
 %   gamma: vortex density over the chord of the airfoil
 %   u_inf: free airstream speed
-%   alpha: angle of attack of the profile in degrees
+%   alpha: angle of attack of the airfoil in degrees
 %   x: x coordinate position for each panel union (including first and
 %      last points)
 %   z: z coordinate position for each panel union (including first and
@@ -235,13 +235,13 @@ function cp = getPressureCoeficients(gamma, u_inf, x, z)
 end
 
 
-% Given the following values for an airfoil
+% Given the following values of an airfoil
 %
 %   x: x coordinate position for each panel union (including first and
 %      last points)
 %   z: z coordinate position for each panel union (including first and
 %      last points)
-%   alpha: angle of attack of the profile in degrees
+%   alpha: angle of attack of the airfoil in degrees
 %
 % Plots the airfoil and the C_p over it
 function showPressureCoeficientsOverAirfoil(x, z, alpha)
