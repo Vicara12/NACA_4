@@ -33,7 +33,7 @@ function NACA_solver()
     
     
     % homework section 1: convergence and error analisis
-    %testConvergence(f, p, alpha, xh, eta, u_inf, 0.0, 0.6664, -0.2197);
+    testConvergence(f, p, alpha, xh, eta, u_inf, 0.0, 0.6664, -0.2197);
     
     
     % homework section 2.1: airfoil C_l slope and C_m (check units)
@@ -290,8 +290,11 @@ function testConvergence(f, p, alpha, xh, eta, u_inf, x_ref, real_cl, real_cm)
     yyaxis left;
     plot(log_n, cl);
     ylabel('Cl value');
+    yline(cl(end), '--', round(cl(end), 2), 'LabelHorizontalAlignment','left', 'HandleVisibility','off');
     yyaxis right;
     plot(log_n, error_cl);
+    ylim([-0.12, 0.03]);
+    yline(error_cl(end), '--', round(error_cl(end), 4), 'HandleVisibility','off');
     title('Cl value and error');
     xlabel('log2 number of panels');
     ylabel('error');
@@ -302,9 +305,12 @@ function testConvergence(f, p, alpha, xh, eta, u_inf, x_ref, real_cl, real_cm)
     subplot(1, 2, 2);
     yyaxis left;
     plot(log_n, cm);
+    yline(cm(end), '--', round(cm(end), 2), 'LabelHorizontalAlignment','left', 'HandleVisibility','off');
     ylabel('Cm value');
     yyaxis right;
     plot(log_n, error_cm);
+    ylim([-0.01, 0.035]);
+    yline(error_cm(end), '--', round(error_cm(end), 4), 'HandleVisibility','off');
     title('Cm value and error');
     xlabel('log2 number of panels');
     ylabel('error');
